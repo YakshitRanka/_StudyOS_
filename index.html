@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>StudyOS — Personal Academic Command Centre</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0f172a;
+      --bg-secondary: #1e293b;
+      --bg-card: #334155;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent-blue: #38bdf8;
+      --accent-green: #4ade80;
+      --accent-purple: #c084fc;
+      --accent-amber: #fbbf24;
+      --accent-rose: #fb7185;
+      --border-color: #475569;
+      --font-family: 'Inter', sans-serif;
+    }
+
+    [data-theme="light"] {
+      --bg-primary: #f8fafc;
+      --bg-secondary: #ffffff;
+      --bg-card: #f1f5f9;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --border-color: #cbd5e1;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font-family); }
+    body { background-color: var(--bg-primary); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; }
+
+    /* Sidebar Navigation */
+    #sidebar { width: 280px; background-color: var(--bg-secondary); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; }
+    .sidebar-header { padding: 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+    .sidebar-header h2 { font-size: 1.3rem; color: var(--accent-blue); font-weight: 700; }
+    .stage-badge { font-size: 0.75rem; background: var(--bg-card); padding: 4px 8px; border-radius: 6px; color: var(--accent-green); }
+    .nav-list { list-style: none; padding: 15px; overflow-y: auto; flex: 1; }
+    .nav-section-title { font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); margin: 15px 0 5px 10px; font-weight: 600; }
+    .nav-item { padding: 12px 15px; border-radius: 8px; margin-bottom: 4px; cursor: pointer; display: flex; align-items: center; gap: 10px; color: var(--text-muted); font-weight: 500; transition: all 0.2s; }
+    .nav-item:hover, .nav-item.active { background-color: var(--bg-card); color: var(--text-main); }
+    .nav-item.active { border-left: 4px solid var(--accent-blue); }
+
+    /* Main Content Area */
+    #main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    header { height: 65px; background-color: var(--bg-secondary); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 0 25px; }
+    .header-actions { display: flex; gap: 12px; align-items: center; }
+    .btn { padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; font-weight: 600; font-size: 0.85rem; transition: opacity 0.2s; }
+    .btn-primary { background-color: var(--accent-blue); color: #0f172a; }
+    .btn-secondary { background-color: var(--bg-card); color: var(--text-main); border: 1px solid var(--border-color); }
+    .btn-warning { background-color: var(--accent-amber); color: #0f172a; }
+    .btn:hover { opacity: 0.9; }
+
+    /* View Containers */
+    .view-container { flex: 1; padding: 25px; overflow-y: auto; display: none; }
+    .view-container.active { display: block; }
+
+    /* Grid & Cards */
+    .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+    .card { background-color: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; }
+    .card-title { font-size: 1rem; font-weight: 600; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+
+    /* Syllabus Layout */
+    .subject-card { background-color: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 10px; margin-bottom: 15px; padding: 15px; }
+    .progress-bar-bg { background-color: var(--bg-card); height: 8px; border-radius: 4px; overflow: hidden; margin-top: 8px; }
+    .progress-bar-fill { background-color: var(--accent-green); height: 100%; width: 0%; transition: width 0.3s; }
+    .chapter-item { background: var(--bg-card); margin: 8px 0; padding: 10px 14px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; }
+    .status-select { background: var(--bg-primary); color: var(--text-main); border: 1px solid var(--border-color); padding: 4px 8px; border-radius: 4px; }
+
+    /* Modal Component */
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 100; }
+    .modal { background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 25px; border-radius: 12px; width: 90%; max-width: 500px; }
+    .modal-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 15px; }
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 5px; }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-main); }
+
+    /* Mobile / iPad Responsive */
+    @media (max-width: 900px) {
+      #sidebar { width: 220px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar Navigation -->
+  <div id="sidebar">
+    <div class="sidebar-header">
+      <h2>StudyOS</h2>
+      <span class="stage-badge" id="current-stage-display">Class 11</span>
+    </div>
+    <ul class="nav-list">
+      <li class="nav-section-title">Core Engine</li>
+      <li class="nav-item active" onclick="switchView('dashboard')"> Dashboard</li>
+      <li class="nav-item" onclick="switchView('syllabus')"> Syllabus & Subjects</li>
+      <li class="nav-item" onclick="switchView('planner')"> Daily Planner</li>
+      <li class="nav-item" onclick="switchView('revision')"> Revision Manager</li>
+      <li class="nav-item" onclick="switchView('tests')"> Tests & Analytics</li>
+      <li class="nav-item" onclick="switchView('mistakes')"> Mistake Notebook</li>
+      
+      <li class="nav-section-title">Academic Journey</li>
+      <li class="nav-item" onclick="loadStage('Class 11')">Class 11 (CBSE)</li>
+      <li class="nav-item" onclick="loadStage('Class 12')">Class 12</li>
+      <li class="nav-item" onclick="loadStage('CA Foundation')">CA Foundation</li>
+      <li class="nav-item" onclick="loadStage('CA Intermediate')">CA Intermediate</li>
+      <li class="nav-item" onclick="loadStage('Articleship')">Articleship</li>
+      <li class="nav-item" onclick="loadStage('CA Final')">CA Final</li>
+      <li class="nav-item" onclick="loadStage('Future Goals')">Post-Qualification</li>
+      
+      <li class="nav-section-title">System Controls</li>
+      <li class="nav-item" onclick="switchView('settings')"> Settings & Backup</li>
+    </ul>
+  </div>
+
+  <!-- Main View -->
+  <div id="main-content">
+    <header>
+      <h3 id="view-title">Dashboard Overview</h3>
+      <div class="header-actions">
+        <button class="btn btn-warning" onclick="openTransitionModal()">Academic Transition</button>
+        <button class="btn btn-secondary" onclick="toggleTheme()">Theme</button>
+      </div>
+    </header>
+
+    <!-- Dashboard View -->
+    <div id="view-dashboard" class="view-container active">
+      <div class="dashboard-grid">
+        <div class="card">
+          <div class="card-title">Overall Stage Progress</div>
+          <h2 id="overall-progress-text">0%</h2>
+          <div class="progress-bar-bg"><div class="progress-bar-fill" id="overall-progress-bar"></div></div>
+          <p style="margin-top: 10px; font-size: 0.85rem; color: var(--text-muted);">Target Deadline: 31 Dec 2026</p>
+        </div>
+        <div class="card">
+          <div class="card-title">Today's Tasks</div>
+          <div id="dashboard-task-list"><p style="color: var(--text-muted);">No pending tasks for today.</p></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Pending Revisions</div>
+          <div id="dashboard-revision-list"><p style="color: var(--text-muted);">All revisions up to date!</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Syllabus View -->
+    <div id="view-syllabus" class="view-container">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2>Syllabus Tracker</h2>
+        <button class="btn btn-primary" onclick="openAddSubjectModal()">+ Add Subject</button>
+      </div>
+      <div id="syllabus-container"></div>
+    </div>
+
+    <!-- Planner View -->
+    <div id="view-planner" class="view-container">
+      <h2>Daily Study Planner</h2>
+      <p style="color: var(--text-muted); margin-bottom: 15px;">Planned blocks: School Study (2x55 min) & CA Foundation Preparation.</p>
+      <button class="btn btn-primary" onclick="openAddTaskModal()">+ Add Task</button>
+      <div id="planner-task-container" style="margin-top: 20px;"></div>
+    </div>
+
+    <!-- Revision View -->
+    <div id="view-revision" class="view-container">
+      <h2>Spaced Repetition Queue</h2>
+      <p style="color: var(--text-muted); margin-bottom: 15px;">Automated Spaced Intervals: 1, 3, 7, 15, 30 days.</p>
+      <div id="revision-queue-container"></div>
+    </div>
+
+    <!-- Tests & Analytics View -->
+    <div id="view-tests" class="view-container">
+      <h2>Tests & Marks Analytics</h2>
+      <div id="tests-list-container" style="margin-top: 20px;"></div>
+    </div>
+
+    <!-- Mistake Notebook View -->
+    <div id="view-mistakes" class="view-container">
+      <h2>Mistake Notebook</h2>
+      <div id="mistakes-container" style="margin-top: 20px;"></div>
+    </div>
+
+    <!-- Settings & Backup View -->
+    <div id="view-settings" class="view-container">
+      <h2>System Settings & Local Data</h2>
+      <div class="card" style="margin-top: 20px;">
+        <div class="card-title">Manual Data Backup & Restore</div>
+        <p style="color: var(--text-muted); margin-bottom: 15px;">Download a complete JSON snapshot of all your local records or restore from a previously exported backup.</p>
+        <div style="display: flex; gap: 10px;">
+          <button class="btn btn-primary" onclick="exportDataBackup()">Export Complete Backup (JSON)</button>
+          <input type="file" id="import-file-input" style="display:none;" onchange="importDataBackup(event)">
+          <button class="btn btn-secondary" onclick="document.getElementById('import-file-input').click()">Restore from File</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Transition Confirmation Modal -->
+  <div class="modal-overlay" id="modal-transition">
+    <div class="modal">
+      <div class="modal-title">Confirm Academic Transition</div>
+      <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px;">
+        Transitioning stage requires manual confirmation. Your existing records will be safely preserved and archived.
+      </p>
+      <div class="form-group">
+        <label>Select Target Stage to Activate:</label>
+        <select id="transition-target-stage">
+          <option value="Class 12">Class 12</option>
+          <option value="CA Foundation">CA Foundation</option>
+          <option value="CA Intermediate">CA Intermediate</option>
+          <option value="Articleship">Articleship</option>
+          <option value="CA Final">CA Final</option>
+          <option value="Future Goals">Post-Qualification</option>
+        </select>
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap:10px;">
+        <button class="btn btn-secondary" onclick="closeModal('modal-transition')">Cancel</button>
+        <button class="btn btn-primary" onclick="confirmTransition()">Confirm & Activate Stage</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript Core Engine -->
+  <script>
+    // IndexedDB Database Handler
+    let db;
+    const currentStage = localStorage.getItem('studyos_current_stage') || 'Class 11';
+
+    function initDB() {
+      const request = indexedDB.open('StudyOSDB', 1);
+      request.onupgradeneeded = (e) => {
+        db = e.target.result;
+        if (!db.objectStoreNames.contains('syllabi')) db.createObjectStore('syllabi', { keyPath: 'id', autoIncrement: true });
+        if (!db.objectStoreNames.contains('tasks')) db.createObjectStore('tasks', { keyPath: 'id', autoIncrement: true });
+        if (!db.objectStoreNames.contains('revisions')) db.createObjectStore('revisions', { keyPath: 'id', autoIncrement: true });
+      };
+      request.onsuccess = (e) => {
+        db = e.target.result;
+        document.getElementById('current-stage-display').innerText = currentStage;
+        seedPreloadedSyllabus();
+        renderSyllabus();
+      };
+    }
+
+    // Preload Class 11 and CA Foundation Syllabi
+    function seedPreloadedSyllabus() {
+      const transaction = db.transaction(['syllabi'], 'readonly');
+      const store = transaction.objectStore('syllabi');
+      const req = store.getAll();
+      req.onsuccess = () => {
+        if (req.result.length === 0) {
+          const writeTx = db.transaction(['syllabi'], 'readwrite');
+          const writeStore = writeTx.objectStore('syllabi');
+
+          // Class 11 Preloaded Structure
+          const class11Subjects = [
+            { stage: 'Class 11', name: 'Accountancy', chapters: ['Theoretical Framework', 'Accounting Process', 'Vouchers', 'Accounting Equation', 'Journal', 'Special Purpose Books', 'Cash Book', 'Ledger', 'BRS', 'Depreciation', 'Provisions & Reserves', 'Trial Balance'] },
+            { stage: 'Class 11', name: 'Business Studies', chapters: ['Business, Trade and Commerce', 'Forms of Business Organisation', 'Private, Public and Global Enterprises', 'Business Services', 'Emerging Modes of Business', 'Social Responsibilities of Business', 'Formation of a Company', 'Sources of Business Finance', 'MSME & Entrepreneurship', 'Internal Trade', 'International Business'] },
+            { stage: 'Class 11', name: 'Economics (Micro & Stats)', chapters: ['Intro to Microeconomics', 'Consumer Equilibrium', 'Demand', 'Elasticity of Demand', 'Production Function', 'Cost', 'Revenue', 'Producer Equilibrium', 'Supply', 'Market Forms', 'Collection of Data', 'Mean, Median, Mode', 'Correlation', 'Index Numbers'] },
+            { stage: 'Class 11', name: 'Applied Mathematics', chapters: ['Numbers', 'Indices & Logarithms', 'Quantitative Aptitude', 'Mensuration', 'Sets & Relations', 'Sequences & Series', 'Permutations & Combinations', 'Logical Reasoning', 'Functions', 'Limits & Continuity', 'Differentiation', 'Probability', 'Descriptive Statistics', 'Compound Interest & Annuity', 'Taxation', 'Utility Bills', 'Straight Line', 'Circle & Parabola'] },
+            { stage: 'Class 11', name: 'English', chapters: ['Hornbill - The Portrait of a Lady', 'Hornbill - We are Not Afraid to Die', 'Hornbill - Discovering Tut', 'Hornbill - A Photograph (Poetry)', 'Snapshots - The Summer of the Beautiful White Horse', 'Writing Skills - Note Making', 'Writing Skills - Essay & Letters'] }
+          ];
+
+          // CA Foundation Preloaded Structure
+          const caFoundationSubjects = [
+            { stage: 'CA Foundation', name: 'Accounting', chapters: ['Theoretical Framework', 'Accounting Standards', 'BRS', 'Inventories', 'Depreciation', 'Bills of Exchange', 'Final Accounts', 'NPO Accounts', 'Partnership Accounts', 'Company Accounts'] },
+            { stage: 'CA Foundation', name: 'Business Laws', chapters: ['Regulatory Framework', 'Indian Contract Act 1872', 'Sale of Goods Act 1930', 'Indian Partnership Act 1932', 'LLP Act 2008', 'Companies Act 2013'] },
+            { stage: 'CA Foundation', name: 'Quantitative Aptitude', chapters: ['Ratio & Proportion', 'Indices & Logarithms', 'Equations', 'Mathematics of Finance', 'P&C', 'Logical Reasoning Series', 'Seating Arrangements', 'Blood Relations', 'Statistics Description', 'Correlation & Regression'] },
+            { stage: 'CA Foundation', name: 'Business Economics', chapters: ['Demand & Supply', 'Production & Cost', 'Markets', 'Business Cycles', 'National Income', 'Public Finance', 'Money Market', 'International Trade', 'Indian Economy'] }
+          ];
+
+          [...class11Subjects, ...caFoundationSubjects].forEach(sub => {
+            writeStore.add({
+              stage: sub.stage,
+              subjectName: sub.name,
+              chapters: sub.chapters.map(c => ({ name: c, status: 'Not Started' }))
+            });
+          });
+
+          writeTx.oncomplete = () => renderSyllabus();
+        }
+      };
+    }
+
+    // UI View Navigation
+    function switchView(viewName) {
+      document.querySelectorAll('.view-container').forEach(v => v.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+      document.getElementById(`view-${viewName}`).classList.add('active');
+      document.getElementById('view-title').innerText = viewName.charAt(0).toUpperCase() + viewName.slice(1);
+    }
+
+    function loadStage(stageName) {
+      localStorage.setItem('studyos_current_stage', stageName);
+      document.getElementById('current-stage-display').innerText = stageName;
+      renderSyllabus();
+      switchView('syllabus');
+    }
+
+    // Render Syllabus for Active Stage
+    function renderSyllabus() {
+      const container = document.getElementById('syllabus-container');
+      container.innerHTML = '';
+      const tx = db.transaction(['syllabi'], 'readonly');
+      const store = tx.objectStore('syllabi');
+      const req = store.getAll();
+
+      req.onsuccess = () => {
+        const stageData = req.result.filter(s => s.stage === currentStage);
+        if (stageData.length === 0) {
+          container.innerHTML = `<p style="color:var(--text-muted)">No subjects setup for ${currentStage} yet. Use "+ Add Subject" to create one.</p>`;
+          return;
+        }
+
+        stageData.forEach(subject => {
+          let totalCh = subject.chapters.length;
+          let masteredCh = subject.chapters.filter(c => c.status === 'Mastered' || c.status === 'Revised').length;
+          let pct = totalCh ? Math.round((masteredCh / totalCh) * 100) : 0;
+
+          const card = document.createElement('div');
+          card.className = 'subject-card';
+          card.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <h3>${subject.subjectName}</h3>
+              <span>${pct}% Completed</span>
+            </div>
+            <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${pct}%"></div></div>
+            <div style="margin-top:15px;">
+              ${subject.chapters.map((ch, idx) => `
+                <div class="chapter-item">
+                  <span>${ch.name}</span>
+                  <select class="status-select" onchange="updateChapterStatus(${subject.id}, ${idx}, this.value)">
+                    <option value="Not Started" ${ch.status === 'Not Started' ? 'selected' : ''}>Not Started</option>
+                    <option value="Learning" ${ch.status === 'Learning' ? 'selected' : ''}>Learning</option>
+                    <option value="Practising" ${ch.status === 'Practising' ? 'selected' : ''}>Practising</option>
+                    <option value="Mastered" ${ch.status === 'Mastered' ? 'selected' : ''}>Mastered</option>
+                    <option value="Revised" ${ch.status === 'Revised' ? 'selected' : ''}>Revised</option>
+                  </select>
+                </div>
+              `).join('')}
+            </div>
+          `;
+          container.appendChild(card);
+        });
+      };
+    }
+
+    function updateChapterStatus(subjectId, chapterIdx, newStatus) {
+      const tx = db.transaction(['syllabi'], 'readwrite');
+      const store = tx.objectStore('syllabi');
+      const req = store.get(subjectId);
+      req.onsuccess = () => {
+        const record = req.result;
+        record.chapters[chapterIdx].status = newStatus;
+        store.put(record);
+        tx.oncomplete = () => renderSyllabus();
+      };
+    }
+
+    // Modal Control & Stage Transitions
+    function openTransitionModal() { document.getElementById('modal-transition').style.display = 'flex'; }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+    
+    function confirmTransition() {
+      const targetStage = document.getElementById('transition-target-stage').value;
+      localStorage.setItem('studyos_current_stage', targetStage);
+      document.getElementById('current-stage-display').innerText = targetStage;
+      closeModal('modal-transition');
+      renderSyllabus();
+      alert(`Academic transition confirmed! Active workspace switched to ${targetStage}. All previous records remain preserved.`);
+    }
+
+    // Backup and Restore (JSON)
+    function exportDataBackup() {
+      const tx = db.transaction(['syllabi'], 'readonly');
+      const store = tx.objectStore('syllabi');
+      store.getAll().onsuccess = (e) => {
+        const backupData = {
+          version: '1.0',
+          exportedAt: new Date().toISOString(),
+          syllabi: e.target.result
+        };
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData));
+        const downloadAnchor = document.createElement('a');
+        downloadAnchor.setAttribute("href", dataStr);
+        downloadAnchor.setAttribute("download", `StudyOS_Backup_${new Date().toISOString().slice(0,10)}.json`);
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
+      };
+    }
+
+    function importDataBackup(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const imported = JSON.parse(e.target.result);
+          if (imported.syllabi) {
+            const tx = db.transaction(['syllabi'], 'readwrite');
+            const store = tx.objectStore('syllabi');
+            store.clear().onsuccess = () => {
+              imported.syllabi.forEach(item => { delete item.id; store.add(item); });
+              alert("Data restored successfully!");
+              renderSyllabus();
+            };
+          }
+        } catch (err) {
+          alert("Invalid backup file format.");
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function toggleTheme() {
+      const currentTheme = document.body.getAttribute('data-theme');
+      document.body.setAttribute('data-theme', currentTheme === 'light' ? 'dark' : 'light');
+    }
+
+    // Register Service Worker for Offline Capabilities
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').then(() => {
+          console.log('StudyOS Service Worker Registered Successfully.');
+        }).catch(err => console.log('ServiceWorker registration failed: ', err));
+      });
+    }
+
+    window.onload = initDB;
+  </script>
+</body>
+</html>
